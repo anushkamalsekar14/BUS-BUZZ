@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUS BUZZ - GPS Tracking</title>
+
+<!-- Leaflet Map -->
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #07152e;
+    color: white;
+}
+
+header {
+    background: #020b1d;
+    padding: 20px 8%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.logo {
+    font-size: 27px;
+    color: #38bdf8;
+    font-weight: bold;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 10px;
+}
+
+.hero {
+    text-align: center;
+    padding: 60px 15px;
+    background: linear-gradient(135deg,#102b58,#061329);
+}
+
+.hero h1 {
+    font-size: 35px;
+    margin-bottom: 15px;
+}
+
+.hero span {
+    color: #38bdf8;
+}
+
+.search-box {
+    background: #102344;
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 25px;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(170px,1fr));
+    gap: 15px;
+}
+
+input {
+    padding: 13px;
+    background: #07152e;
+    color: white;
+    border: 1px solid #38577e;
+    border-radius: 7px;
+    width: 100%;
+}
+
+button {
+    padding: 13px 18px;
+    background: #0284c7;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #0369a1;
+}
+
+section {
+    padding: 30px 8%;
+}
+
+.section-title {
+    text-align: center;
+    color: #38bdf8;
+    margin-bottom: 25px;
+}
+
+.bus-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #102344;
+    border: 1px solid #24456e;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 15px;
+}
+
+.card h3 {
+    color: #38bdf8;
+    margin-bottom: 15px;
+}
+
+.card p {
+    margin: 10px 0;
+}
+
+#tracking {
+    display: none;
+}
+
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 20px;
+    border: 2px solid #38bdf8;
+}
+
+.status {
+    background: #102344;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    line-height: 1.8;
+}
+
+.auto-section {
+    display: none;
+}
+
+footer {
+    text-align: center;
+    background: #020b1d;
+    padding: 22px;
+    color: #94a3b8;
+}
+
+.small {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">🚌 BUS BUZZ</div>
+
+    <nav>
+        <a href="#home">Home</a>
+        <a href="#search">Search</a>
+        <a href="#tracking">GPS Tracking</a>
+        <a href="#about">About</a>
+    </nav>
+</header>
+
+<div class="hero" id="home">
+    <h1>Welcome to <span>BUS BUZZ</span></h1>
+    <p>Find Government Buses and Track Their Location</p>
+    <p>Smart and Easy Travel Information</p>
+</div>
+
+<section id="search">
+
+    <h2 class="section-title">Search Government Buses</h2>
+
+    <div class="search-box">
+
+        <input type="text" id="from"
+        placeholder="Starting Place">
+
+        <input type="text" id="to"
+        placeholder="Destination">
+
+        <input type="date" id="date">
+
+        <button onclick="searchBuses()">Search Buses</button>
+
+    </div>
+
+</section>
+
+<section id="results" style="display:none;">
+
+    <h2 class="section-title">Available Government Buses</h2>
+
+    <p id="journey" style="text-align:center;margin-bottom:20px;"></p>
+
+    <div class="bus-container">
+
+        <div class="card">
+            <h3>KSRTC - Airavat</h3>
+            <p>Bus Type: AC</p>
+            <p>Departure: 08:00 AM</p>
+            <p>Arrival: 02:00 PM</p>
+
+            <button onclick="trackBus('KSRTC Airavat')">
+                Track Bus
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>NWKRTC - Rajahamsa</h3>
+            <p>Bus Type: Non AC</p>
+            <p>Departure: 09:00 AM</p>
+            <p>Arrival: 03:30 PM</p>
+
+            <button onclick="trackBus('NWKRTC Rajahamsa')">
+                Track Bus
+            </button>
+        </div>
+
+    </div>
+
+    <p class="small" style="text-align:center;">
+        Demonstration bus details only. Not live schedules.
+    </p>
+
+</section>
+
+<!-- GPS TRACKING -->
+
+<section id="tracking">
+
+    <h2 class="section-title">Live Bus GPS Tracking</h2>
+
+    <div class="card">
+
+        <h3 id="busName">Selected Bus</h3>
+
+        <p>Check the GPS location of the device sharing its location.</p>
+
+        <button onclick="startGPS()">
+            📍 Get GPS Location
+        </button>
+
+        <button onclick="stopGPS()" style="background:#b91c1c;">
+            Stop Tracking
+        </button>
+
+        <div class="status">
+            <p><b>Status:</b> <span id="gpsStatus">Waiting for GPS...</span></p>
+            <p><b>Latitude:</b> <span id="latitude">Not available</span></p>
+            <p><b>Longitude:</b> <span id="longitude">Not available</span></p>
+            <p><b>Last Update:</b> <span id="lastUpdate">Not available</span></p>
+        </div>
+
+        <div id="map"></div>
+
+        <p class="small">
+            Demo: This tracks the device that grants GPS permission.
+            It does not automatically track the actual government bus.
+        </p>
+
+    </div>
+
+</section>
+
+<!-- AUTO ALTERNATIVE -->
+
+<section class="auto-section" id="autoAlternative">
+
+    <h2 class="section-title">Alternative Transport</h2>
+
+    <div class="card" style="text-align:center;max-width:650px;margin:auto;">
+        <h3>🛺 Auto Rickshaw</h3>
+
+        <p>Need another transport option?</p>
+
+        <p>From: <span id="autoFrom"></span></p>
+        <p>To: <span id="autoTo"></span></p>
+        <p>Estimated fare: ₹100 - ₹300 (demo only)</p>
+
+        <p class="small">
+            Actual fare depends on distance and local rates.
+        </p>
+    </div>
+
+</section>
+
+<section id="about">
+    <h2 class="section-title">About BUS BUZZ</h2>
+
+    <p style="text-align:center;line-height:1.8;color:#cbd5e1;">
+        BUS BUZZ is a transport information platform that
+        helps users find government bus information, view
+        bus routes and explore GPS-based bus tracking.
+        It also suggests auto rickshaws as an alternative
+        transport option.
+    </p>
+</section>
+
+<footer>
+    © 2026 BUS BUZZ | Smart Government Bus Information
+</footer>
+
+<script>
+
+let searchedFrom = "";
+let searchedTo = "";
+let selectedBus = "";
+
+let map = null;
+let busMarker = null;
+let gpsWatch = null;
+
+function searchBuses() {
+
+    searchedFrom = document.getElementById("from").value.trim();
+    searchedTo = document.getElementById("to").value.trim();
+
+    let date = document.getElementById("date").value;
+
+    if (!searchedFrom || !searchedTo || !date) {
+        alert("Please enter starting place, destination and date.");
+        return;
+    }
+
+    if (searchedFrom.toLowerCase() === searchedTo.toLowerCase()) {
+        alert("Starting place and destination cannot be the same.");
+        return;
+    }
+
+    document.getElementById("results").style.display = "block";
+
+    document.getElementById("journey").innerText =
+        searchedFrom + " → " + searchedTo + " | " + date;
+
+    document.getElementById("autoFrom").innerText = searchedFrom;
+    document.getElementById("autoTo").innerText = searchedTo;
+
+    document.getElementById("autoAlternative").style.display = "block";
+
+    document.getElementById("results").scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+function trackBus(bus) {
+
+    selectedBus = bus;
+
+    document.getElementById("busName").innerText = bus;
+
+    document.getElementById("tracking").style.display = "block";
+
+    document.getElementById("gpsStatus").innerText =
+        "Waiting for device GPS permission";
+
+    document.getElementById("tracking").scrollIntoView({
+        behavior: "smooth"
+    });
+
+    setTimeout(function() {
+        if (map) {
+            map.invalidateSize();
+        } else {
+            map = L.map('map').setView([15.86, 74.5], 7);
+
+            L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }
+            ).addTo(map);
+        }
+    }, 300);
+}
+
+function startGPS() {
+
+    if (!navigator.geolocation) {
+        alert("GPS is not supported by this browser.");
+        return;
+    }
+
+    if (gpsWatch !== null) {
+        navigator.geolocation.clearWatch(gpsWatch);
+    }
+
+    document.getElementById("gpsStatus").innerText =
+        "Requesting GPS permission...";
+
+    gpsWatch = navigator.geolocation.watchPosition(
+
+        function(position) {
+
+            let lat = position.coords.latitude;
+            let lon = position.coords.longitude;
+
+            document.getElementById("latitude").innerText = lat.toFixed(6);
+            document.getElementById("longitude").innerText = lon.toFixed(6);
+
+            document.getElementById("lastUpdate").innerText =
+                new Date().toLocaleTimeString();
+
+            document.getElementById("gpsStatus").innerText =
+                "GPS location received";
+
+            if (!map) {
+                map = L.map('map').setView([lat, lon], 15);
+
+                L.tileLayer(
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }
+                ).addTo(map);
+            }
+
+            if (!busMarker) {
+
+                busMarker = L.marker([lat, lon]).addTo(map);
+
+            } else {
+
+                busMarker.setLatLng([lat, lon]);
+
+            }
+
+            busMarker.bindPopup(
+                selectedBus + " - Device GPS Location"
+            ).openPopup();
+
+            map.setView([lat, lon], 15);
+
+        },
+
+        function(error) {
+
+            document.getElementById("gpsStatus").innerText =
+                "Unable to get GPS location.";
+
+            alert("Please allow location permission and try again.");
+
+        },
+
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 15000
+        }
+
+    );
+
+}
+
+function stopGPS() {
+
+    if (gpsWatch !== null) {
+
+        navigator.geolocation.clearWatch(gpsWatch);
+
+        gpsWatch = null;
+
+        document.getElementById("gpsStatus").innerText =
+            "GPS tracking stopped";
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
